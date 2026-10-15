@@ -1,0 +1,132 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#ff7900">
+<title>Track Your Sales</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f5f6fa;color:#222;font-family:Arial,sans-serif}
+header{background:linear-gradient(135deg,#ff7900,#ff9d32);color:white;padding:26px 18px 32px;border-radius:0 0 26px 26px}
+header h1{margin:0 0 8px;font-size:27px}
+header p{margin:0;font-size:14px}
+main{padding:16px;max-width:650px;margin:auto}
+.card{background:white;border-radius:18px;padding:17px;margin-bottom:14px;box-shadow:0 3px 14px #00000008}
+h2{font-size:18px;margin:0 0 14px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:#fff3e8;padding:15px;border-radius:14px}
+.stat small{color:#666}
+.stat strong{display:block;font-size:24px;margin-top:7px}
+input,button{font:inherit;border-radius:10px;padding:11px;border:1px solid #ddd}
+input{width:100%;margin:5px 0 12px}
+button{background:#ff7900;color:white;border:0;font-weight:bold;cursor:pointer}
+button.secondary{background:#fff0e3;color:#a84d00}
+.progress{height:9px;background:#eee;border-radius:20px;overflow:hidden;margin:10px 0}
+.bar{height:100%;background:#ff7900;width:0%;transition:width .2s}
+.item{border-bottom:1px solid #eee;padding:12px 0}
+.item:last-child{border:0}
+.itemtop{display:flex;justify-content:space-between;gap:8px}
+.item small{color:#666}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+footer{text-align:center;color:#777;font-size:12px;padding:20px}
+</style>
+</head>
+<body>
+<header>
+<h1>🧡 Track Your Sales</h1>
+<p>معاك خطوة بخطوة لحد ما تحقق التارجت</p>
+<p style="margin-top:14px;font-weight:bold">أورنجاوي 🍊: يلا نحقق هدفنا النهارده!</p>
+</header>
+
+<main>
+<section class="card">
+<h2>📊 ملخص الإنجاز</h2>
+<div class="stats">
+<div class="stat"><small>إجمالي المستهدف</small><strong id="total">0</strong></div>
+<div class="stat"><small>إجمالي المحقق</small><strong id="done">0</strong></div>
+<div class="stat"><small>نسبة الإنجاز</small><strong id="percent">0%</strong></div>
+<div class="stat"><small>المتبقي</small><strong id="remaining">0</strong></div>
+</div>
+</section>
+
+<section class="card">
+<h2>🎯 بيانات التارجت</h2>
+<p style="font-size:13px;color:#666">عدّل المستهدف حسب أهداف شهرك، ثم سجّل المحقق لكل بند.</p>
+<div id="items"></div>
+<button onclick="saveData()" style="width:100%">💾 حفظ البيانات</button>
+<button class="secondary" onclick="resetMonth()" style="width:100%;margin-top:9px">بدء شهر جديد</button>
+</section>
+
+<section class="card">
+<h2>🍊 رسالة أورنجاوي</h2>
+<p id="message">كل إنجاز صغير بيقرّبك من هدفك!</p>
+</section>
+</main>
+
+<footer>Track Your Sales · تطبيق مستقل غير تابع رسميًا لشركة Orange</footer>
+
+<script>
+const defaults=[
+{name:"الخطوط الجديدة",target:175,actual:0},
+{name:"محافظ Orange Cash الجديدة",target:158,actual:0},
+{name:"المحافظ القائمة",target:74,actual:0},
+{name:"النقاط",target:1737,actual:0},
+{name:"خطوط Postpaid",target:10,actual:0},
+{name:"DSL",target:1,actual:0},
+{name:"الجودة %",target:100,actual:0}
+];
+let data;
+try{
+ data=JSON.parse(localStorage.getItem("tys-data"))||defaults;
+ if(!Array.isArray(data))data=defaults;
+}catch(e){data=defaults;}
+
+function render(){
+ const box=document.getElementById("items");
+ box.innerHTML="";
+ data.forEach((x,i)=>{
+ const wrap=document.createElement("div");
+ wrap.className="item";
+ wrap.innerHTML=`
+ <div class="itemtop"><strong>${x.name}</strong><small>المتبقي: ${Math.max(0,Number(x.target)-Number(x.actual))}</small></div>
+ <div class="row">
+ <label><small>المستهدف</small><input type="number" min="0" data-i="${i}" data-k="target" value="${x.target}"></label>
+ <label><small>المحقق</small><input type="number" min="0" data-i="${i}" data-k="actual" value="${x.actual}"></label>
+ </div>
+ <div class="progress"><div class="bar" style="width:${Math.min(100,Number(x.target)>0?Number(x.actual)/Number(x.target)*100:0)}%"></div></div>`;
+ box.appendChild(wrap);
+ });
+ box.querySelectorAll("input").forEach(input=>{
+ input.addEventListener("change",()=>{
+ const i=Number(input.dataset.i),k=input.dataset.k;
+ data[i][k]=Math.max(0,Number(input.value)||0);
+ saveData();
+ });
+ });
+ updateSummary();
+}
+function updateSummary(){
+ const total=data.reduce((s,x)=>s+Math.max(0,Number(x.target)||0),0);
+ const done=data.reduce((s,x)=>s+Math.max(0,Number(x.actual)||0),0);
+ document.getElementById("total").textContent=total.toLocaleString("en");
+ document.getElementById("done").textContent=done.toLocaleString("en");
+ document.getElementById("percent").textContent=(total?Math.round(done/total*100):0)+"%";
+ document.getElementById("remaining").textContent=data.reduce((s,x)=>s+Math.max(0,(Number(x.target)||0)-(Number(x.actual)||0)),0).toLocaleString("en");
+ document.getElementById("message").textContent=done>=total&&total>0?"يا بطل! حققت إجمالي المستهدف 🎉":done>0?"عاش! كمّل، كل خطوة بتفرق 💪":"يلا نبدأ أول إنجاز النهارده! 🍊";
+}
+function saveData(){
+ localStorage.setItem("tys-data",JSON.stringify(data));
+ render();
+}
+function resetMonth(){
+ if(confirm("هل تريد تصفير المحقق وبدء شهر جديد؟")){
+ data=data.map(x=>({...x,actual:0}));
+ saveData();
+ }
+}
+render();
+</script>
+</body>
+</html>
